@@ -1,0 +1,5 @@
+# Ignore files created from scraping
+
+pvp-api-data.json
+twosInnerHtml.html
+twosSoup.html
