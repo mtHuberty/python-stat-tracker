@@ -61,8 +61,19 @@ if __name__ == "__main__":
         twosFile.write(twosSoup)
         twosFile.close()
 
+    # Detect OS of the platform the app is running on and use appropriate chromedriver
+    osys = sys.platform
+    if osys.startswith("win"):
+        print("Windows OS detected...using windows chromedriver")
+        driver = "chromedriver.exe"
+    elif osys.startswith("darwin"):
+        print("Mac OS detected...using Mac chromedriver")
+        driver = "mac_chromedriver"
+    else:
+        sys.exit("No driver in \"chromedrivers/\" for detected operating system: " + str(osys))
+
     # This actually DOES work, and the first data we need to save and/or parse is stored in "twosInnerHTML" and then written into "twosInnerHtml.html"
-    browser = webdriver.Chrome("./chromedriver_win32/chromedriver.exe")
+    browser = webdriver.Chrome("./chromedrivers/" + driver)
     browser.get("https://worldofwarcraft.com/en-gb/game/pvp/leaderboards/2v2")
     twosInnerHTML = browser.execute_script("return document.body.innerHTML").encode("utf-8")
     with open("twosInnerHtml.html", "wb") as twosInnerHtmlFile:
