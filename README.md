@@ -19,7 +19,7 @@ It's highly recommended to use virtualenv to manage your python packages. Assumi
   - For Mac, Run `source env/bin/activate`
 - You should see (env) at the beginning of your shell prompt now, and running `which python` on mac/linux or `get-command python` on windows should show you a path to the Python binary inside the env/ directory. Now running pip/python will use the virtualenv PATH/binaries before your global machine PATH. We're ready to install the packages needed for our backend.
 
-#### Installing packages listed in requirements.txt
+#### Install packages listed in requirements.txt
 - Run `pip install -r requirements.txt`. This will download any dependencies listed in requirements.txt to your virtualenv. After this, you should be ready to run the application.
 
 #### Test the program
