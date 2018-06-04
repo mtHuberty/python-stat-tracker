@@ -39,6 +39,8 @@ def makeFile(data, fileName="whoops.json"):
 def postgresConnect(host="localhost", dbname="postgres", user="postgres", password=None):
     return psycopg2.connect("host='{}' dbname='{}' user='{}'".format(host, dbname, user))
 
+    # TODO - psycopg2 isn't using password at all...strange that it even connects. Need to fix this (with an if password:, else: block)
+    # Also, maybe I should find out why the hell it doesn't seem to need a password when I DEFINITELY set one on pgAdmin.
 
 
 
@@ -47,7 +49,7 @@ def postgresConnect(host="localhost", dbname="postgres", user="postgres", passwo
 # Here's where all the magic will happen!
 if __name__ == "__main__":
 
-    # Open config file and initialize variables from it. Not important.
+    # Open config file and initialize variables from it. No important variables yet.
     cfg = loadConfig()
     pvpApiFile = cfg["filenames"]["pvp-api-file"] + ".json"
 
