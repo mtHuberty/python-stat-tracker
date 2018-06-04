@@ -22,5 +22,21 @@ It's highly recommended to use virtualenv to manage your python packages. Assumi
 #### Install packages listed in requirements.txt
 - Run `pip install -r requirements.txt`. This will download any dependencies listed in requirements.txt to your machine (or virtualenv if one is active). After this, you should be ready to run the application.
 
+#### Install PostgresSQL
+- Install PostgresSQL on your machine locally. After it's installed, make sure to run the daemon, or run Postgres as a service anytime your machine boots. You'll then need to create a database called `pyStats` and a user/role named `pyStats_user` with a password `pystats`. 
+- Next, we need to create a new table in Postgres. This SQL will generate the needed table:
+```
+CREATE TABLE ladder2v2 (
+    id SERIAL PRIMARY KEY,
+    charName text,
+    class text,
+    spec text,
+    rating integer
+);
+```
+- Lastly, make sure to grant access to the ladder2v2 table to the pyStats_user. (I did this via pgAdmin4's GUI with the Grant Wizard)
+
+
 #### Test the program
 - Run `python main.py`. You should see a browser pop up in the background, and a few new html files (scraping results) should appear in python-stat-tracker/.
+
