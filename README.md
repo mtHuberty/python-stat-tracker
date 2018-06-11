@@ -1,8 +1,11 @@
 # python-stat-tracker
 Python web scraper to track WoW PvP stats from the top ranking players in each category (2v2, 3v3, RBGs). Currently, only a backend web-scraping portion is under construction. A frontend and possibly discord bot will be built to display the data in the near future!
 
+### Note about Browsers
+Make sure you have Chrome or Firefox installed on your system. You can choose which browser is used by editing the config file. 
+
 ### Note about the browser drivers
-Currently, both Mac and Windows drivers are in the folder python-stat-tracker/chromedrivers/ and the python script will detect which environment it's running on and use the appropriate driver, so it should work out of the box on Mac/Windows. Linux support coming soon (before we move it to centOS).
+Currently, both Mac and Windows drivers are in the folder python-stat-tracker/chromedrivers/ and the python script will detect which environment it's running on and use the appropriate driver for the chosen browser, so it should work out of the box on Mac/Windows. Linux support coming soon (before we move it to a Linux box).
 
 ---
 
