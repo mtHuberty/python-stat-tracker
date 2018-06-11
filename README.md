@@ -49,6 +49,10 @@ CREATE DATABASE "pyStats"
     CONNECTION LIMIT = -1;
 GRANT ALL ON DATABASE "pyStats" TO "pyStats_user";
 ```
+- IMPORTANT: Don't forget to switch to the new database to create the table in the correct location:
+```
+\c pyStats
+```
 - Next, we need to create a new table in Postgres. This SQL will generate the needed table:
 ```
 CREATE TABLE ladder2v2 (
