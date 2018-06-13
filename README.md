@@ -1,8 +1,11 @@
 # python-stat-tracker
 Python web scraper to track WoW PvP stats from the top ranking players in each category (2v2, 3v3, RBGs). Currently, only a backend web-scraping portion is under construction. A frontend and possibly discord bot will be built to display the data in the near future!
 
+### Note about Browsers
+Make sure you have Chrome or Firefox installed on your system. You can choose which browser is used by editing the config file. 
+
 ### Note about the browser drivers
-Currently, both Mac and Windows drivers are in the folder python-stat-tracker/chromedrivers/ and the python script will detect which environment it's running on and use the appropriate driver, so it should work out of the box on Mac/Windows. Linux support coming soon (before we move it to centOS).
+Currently, both Mac and Windows drivers are in the folder python-stat-tracker/chromedrivers/ and the python script will detect which environment it's running on and use the appropriate driver for the chosen browser, so it should work out of the box on Mac/Windows. Linux support coming soon (before we move it to a Linux box).
 
 ---
 
@@ -23,18 +26,48 @@ It's highly recommended to use virtualenv to manage your python packages. Assumi
 - Run `pip install -r requirements.txt`. This will download any dependencies listed in requirements.txt to your machine (or virtualenv if one is active). After this, you should be ready to run the application.
 
 #### Install PostgresSQL
-- Install PostgresSQL on your machine locally. After it's installed, make sure to run the daemon, or run Postgres as a service anytime your machine boots. You'll then need to create a database called `pyStats` and a user/role named `pyStats_user` with a password `pystats`. 
+- Install PostgresSQL on your machine locally. After it's installed, make sure to run the daemon, or run Postgres as a service anytime your machine boots. You'll then need to create a database called `pyStats` and a user/role named `pyStats_user` with a password `pystats` as shown below. After PostgresSQL binaries are on your PATH environment variable, use `psql -U postgres postgres` with password `postgres` to connect to the default table. 
+```
+DROP DATABASE IF EXISTS "pyStats";
+DROP USER IF EXISTS "pyStats_user";
+CREATE USER "pyStats_user" WITH
+  LOGIN
+  NOSUPERUSER
+  INHERIT
+  NOCREATEDB
+  NOCREATEROLE
+  NOREPLICATION
+  CONNECTION LIMIT 1
+  PASSWORD 'pystats';
+```
+- Now we'll create our database and add permissions for our user:
+```
+CREATE DATABASE "pyStats"
+    WITH 
+    OWNER = postgres
+    ENCODING = 'UTF8'
+    LC_COLLATE = 'English_United States.1252'
+    LC_CTYPE = 'English_United States.1252'
+    TABLESPACE = pg_default
+    CONNECTION LIMIT = -1;
+GRANT ALL ON DATABASE "pyStats" TO "pyStats_user";
+```
+- IMPORTANT: Don't forget to switch to the new database to create the table in the correct location:
+```
+\c pyStats
+```
 - Next, we need to create a new table in Postgres. This SQL will generate the needed table:
 ```
 CREATE TABLE ladder2v2 (
     id SERIAL PRIMARY KEY,
     charName text,
+    realm text,
     class text,
     spec text,
     rating integer
 );
+GRANT ALL ON TABLE public.ladder2v2 TO "pyStats_user";
 ```
-- Lastly, make sure to grant access to the ladder2v2 table to the pyStats_user. (I did this via pgAdmin4's GUI with the Grant Wizard)
 
 
 #### Test the program
