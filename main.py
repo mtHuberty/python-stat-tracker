@@ -98,7 +98,6 @@ if __name__ == "__main__":
         with open("twosInnerHtml.html", "wb") as twosInnerHtmlFile:
             twosInnerHtmlFile.write(twosInnerHTML)
             twosInnerHtmlFile.close()
-        browser.close()
     else:
         with open('twosInnerHtml.html', 'r') as myfile:
             twosInnerHTML = myfile.read().replace('\n', '')
@@ -132,5 +131,8 @@ if __name__ == "__main__":
         curs.execute(sql, {'charName': charName, 'realm': charRealm, 'class': charClass, 'spec': charSpec, 'rating': charRating})
     curs.close()
     conn.close()
-    browser.find_element(By.CSS_SELECTOR, '[data-text="Next"]')
+    buttonInner = browser.find_element_by_xpath('//div[@data-text="Next"]')
+    buttonInner.send_keys('\n')
+    #buttonOuter = buttonInner.find_element(By.XPATH('..'))
+    #buttonOuter.click()
     # TODO - Actually parse the interesting stuff
