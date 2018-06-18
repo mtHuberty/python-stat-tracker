@@ -1,6 +1,7 @@
 from bs4 import BeautifulSoup as soup
 from selenium import webdriver
 from selenium.webdriver.common.by import By
+from selenium.webdriver.chrome.options import Options
 import requests as req
 import yaml
 import sys
@@ -83,7 +84,7 @@ if __name__ == "__main__":
         print("Mac OS detected...using Mac " + browserType + " driver")
         driverPath = "./browserdrivers/" + browserType + "_drivers/mac_" + browserType + "_driver"
     elif osys.startswith("linux"):
-        print("Linux OS detected...using Mac " + browserType + " driver")
+        print("Linux OS detected...using Linux " + browserType + " driver")
         driverPath = "./browserdrivers/" + browserType + "_drivers/linux_" + browserType + "_driver"
     else:
         sys.exit("No driver in \"browserdrivers/\" for detected operating system: " + str(osys))
@@ -92,12 +93,15 @@ if __name__ == "__main__":
     # Changing the if condition to False will turn off scraping. Data will load from file.
     browser = None
     if True:
-        browser = webdriver.Chrome(driverPath)
+        chrome_options = Options()
+        chrome_options.add_argument("--headless")
+        browser = webdriver.Chrome(chrome_options=chrome_options, executable_path=driverPath)
         browser.get("https://worldofwarcraft.com/en-us/game/pvp/leaderboards/2v2")
         twosInnerHTML = browser.execute_script("return document.body.innerHTML").encode("utf-8")
         with open("twosInnerHtml.html", "wb") as twosInnerHtmlFile:
             twosInnerHtmlFile.write(twosInnerHTML)
             twosInnerHtmlFile.close()
+        browser.quit()
     else:
         with open('twosInnerHtml.html', 'r') as myfile:
             twosInnerHTML = myfile.read().replace('\n', '')
@@ -131,8 +135,8 @@ if __name__ == "__main__":
         curs.execute(sql, {'charName': charName, 'realm': charRealm, 'class': charClass, 'spec': charSpec, 'rating': charRating})
     curs.close()
     conn.close()
-    buttonInner = browser.find_element_by_xpath('//div[@data-text="Next"]')
-    buttonInner.send_keys('\n')
+    #buttonInner = browser.find_element_by_xpath('//div[@data-text="Next"]')
+    #buttonInner.send_keys('\n')
     #buttonOuter = buttonInner.find_element(By.XPATH('..'))
     #buttonOuter.click()
     # TODO - Actually parse the interesting stuff
