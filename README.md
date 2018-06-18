@@ -68,6 +68,11 @@ CREATE TABLE ladder2v2 (
 );
 GRANT ALL ON TABLE public.ladder2v2 TO "pyStats_user";
 ```
+- Finally, we add the unique constraint on the character name and the realm, so we know that for a given name + realm, if we already have an entry for them in the database, update their rank and spec instead of adding a duplicate row. 
+```
+ALTER TABLE public.ladder2v2
+    ADD CONSTRAINT unique_char UNIQUE (charname, realm);
+```
 
 
 #### Test the program
