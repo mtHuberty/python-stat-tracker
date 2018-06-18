@@ -52,6 +52,9 @@ CREATE DATABASE "pyStats"
     CONNECTION LIMIT = -1;
 GRANT ALL ON DATABASE "pyStats" TO "pyStats_user";
 ```
+
+
+
 - IMPORTANT: Don't forget to switch to the new database to create the table in the correct location:
 ```
 \c pyStats
@@ -67,6 +70,11 @@ CREATE TABLE ladder2v2 (
     rating integer
 );
 GRANT ALL ON TABLE public.ladder2v2 TO "pyStats_user";
+```
+
+** If you receive a permission denied for sequence error when running the script, you may also have to grant permission for the sequences on Linux versions of postgres by running the following statment**
+```
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO pyStats_user;
 ```
 
 

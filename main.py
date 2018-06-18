@@ -96,44 +96,53 @@ if __name__ == "__main__":
         chrome_options = Options()
         chrome_options.add_argument("--headless")
         browser = webdriver.Chrome(chrome_options=chrome_options, executable_path=driverPath)
-        browser.get("https://worldofwarcraft.com/en-us/game/pvp/leaderboards/2v2")
-        twosInnerHTML = browser.execute_script("return document.body.innerHTML").encode("utf-8")
-        with open("twosInnerHtml.html", "wb") as twosInnerHtmlFile:
-            twosInnerHtmlFile.write(twosInnerHTML)
-            twosInnerHtmlFile.close()
+
+	# Open connection and cursor with PostgresSQL instance
+        conn = postgresConnect(dbname="pyStats", user="pyStats_user", password="pystats")
+        conn.set_session(autocommit=True)
+        curs = conn.cursor()
+
+        for i in range(1,52):
+            browser.get("https://worldofwarcraft.com/en-us/game/pvp/leaderboards/2v2?page={}".format(i))
+            twosInnerHTML = browser.execute_script("return document.body.innerHTML").encode("utf-8")
+            with open("twosInnerHtml.html", "wb") as twosInnerHtmlFile:
+                twosInnerHtmlFile.write(twosInnerHTML)
+                twosInnerHtmlFile.close()
+
+            # Beautiful, BeautifulSoup. I'm bad at this. I don't know what's going on. Trial and error FTW
+            twosSoupJs = soup(twosInnerHTML, "html.parser")
+            fourBodyDivs = twosSoupJs('div', attrs={'class': 'SortTable-body'})
+            targetDiv = fourBodyDivs[4]
+            try:
+                for section in targetDiv:
+                    charInfoDiv = section.select('div')[1].a.select('div')
+                    charName = charInfoDiv[11].text
+                    moreCharInfoList = charInfoDiv[12].text.split(" ")
+                    charClass = moreCharInfoList[2]
+                    charSpec = moreCharInfoList[1]
+                    charPvpDiv = section.select('div')
+                    charRealm = charPvpDiv[15].text
+                    charRating = charPvpDiv[20].text
+                    # TODO Perhaps remove the following print statement as output isn't necessary
+                    print(charName + " " + charRealm + " " + charClass + " " + charSpec + " " + charRating)
+                    sql="""
+                        INSERT INTO ladder2v2 (charname, realm, class, spec, rating)
+                        VALUES (%(charName)s, %(realm)s, %(class)s, %(spec)s, %(rating)s)
+                        ON CONFLICT ON CONSTRAINT unique_char
+                        DO UPDATE SET spec = %(spec)s, rating = %(rating)s;
+                        """
+                    #.format(charName, charRealm, charClass, charSpec, charRating)
+                    curs.execute(sql, {'charName': charName, 'realm': charRealm, 'class': charClass, 'spec': charSpec, 'rating': charRating})
+            except:
+                # TODO Add better/informative error handling
+                print(charInfoDiv)
+        curs.close()
+        conn.close()
+
         browser.quit()
     else:
         with open('twosInnerHtml.html', 'r') as myfile:
             twosInnerHTML = myfile.read().replace('\n', '')
- 
-    # Open connection and cursor with PostgresSQL instance
-    conn = postgresConnect(dbname="pyStats", user="pyStats_user", password="pystats")
-    conn.set_session(autocommit=True)
-    curs = conn.cursor()
-
-    # Beautiful, BeautifulSoup. I'm bad at this. I don't know what's going on. Trial and error FTW
-    twosSoupJs = soup(twosInnerHTML, "html.parser")
-    fourBodyDivs = twosSoupJs('div', attrs={'class': 'SortTable-body'})
-    targetDiv = fourBodyDivs[4]
-    for section in targetDiv:
-        charInfoDiv = section.select('div')[1].a.select('div')
-        charName = charInfoDiv[11].text
-        moreCharInfoList = charInfoDiv[12].text.split(" ")
-        charClass = moreCharInfoList[2]
-        charSpec = moreCharInfoList[1]
-        charPvpDiv = section.select('div')
-        charRealm = charPvpDiv[15].text
-        charRating = charPvpDiv[20].text
-        print(charName + " " + charRealm + " " + charClass + " " + charSpec + " " + charRating)
-        sql="""
-            INSERT INTO ladder2v2 (charname, realm, class, spec, rating)
-                VALUES (%(charName)s, %(realm)s, %(class)s, %(spec)s, %(rating)s)
-                ON CONFLICT ON CONSTRAINT unique_char
-                DO UPDATE SET spec = %(spec)s, rating = %(rating)s;
-            """
-        #.format(charName, charRealm, charClass, charSpec, charRating)
-        curs.execute(sql, {'charName': charName, 'realm': charRealm, 'class': charClass, 'spec': charSpec, 'rating': charRating})
-    curs.close()
     conn.close()
     #buttonInner = browser.find_element_by_xpath('//div[@data-text="Next"]')
     #buttonInner.send_keys('\n')
