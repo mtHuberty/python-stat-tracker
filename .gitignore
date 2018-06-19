@@ -1,5 +1,6 @@
 # Ignore files created from scraping
 
+*.log
 .vscode
 pvp-api-data.json
 twosInnerHtml.html

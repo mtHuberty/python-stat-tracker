@@ -7,16 +7,17 @@ import yaml
 import sys
 import html
 import psycopg2
+import logging
 
 # OPTIONAL - A user can choose a few options by altering values in this file. File is not required for app to run.
 def loadConfig():
     with open("config.yml", "r") as stream:
         try:
             cfg = yaml.safe_load(stream)
-            print("Config loaded! :\n\t" + str(cfg))
+            logger.info("Config loaded! :\n\t" + str(cfg))
             return cfg
         except yaml.YAMLError as e:
-            print("Got a YAML error:\n\t" + str(e))
+            logger.info("Got a YAML error:\n\t" + str(e))
             return ""
 
 # OPTIONAL - We can hit Blizzard's PvP API for some basic data.
@@ -25,7 +26,7 @@ def getPvpApiData():
     try:
         return req.get('https://us.api.battle.net/wow/leaderboard/2v2?&locale=en_US&apikey=d6ua4v22fpg2bcqxvspzvf2ncqdsyvgu')
     except req.exceptions.RequestException as e:
-        print("Error:\n\t" + str(e) + "\n\tClosing application...")
+        logger.error("Error:\n\t" + str(e) + "\n\tClosing application...")
         sys.exit(1)
 
 # OPTIONAL - We can write the results of the API call from the function above to a json file.
@@ -35,7 +36,7 @@ def makeFile(data, fileName="whoops.json"):
         file.write(data)
         file.close()
     except IOError as e:
-        print("Problem creating pvp-api-data file...\n\t" + str(e) + "\n\tContinuing...")
+        logger.error("Problem creating pvp-api-data file...\n\t" + str(e) + "\n\tContinuing...")
 
 # Returns a connection to the default database "postgres"
 def postgresConnect(host="localhost", dbname="postgres", user="postgres", password=None):
@@ -50,6 +51,17 @@ def postgresConnect(host="localhost", dbname="postgres", user="postgres", passwo
 
 # Here's where all the magic will happen!
 if __name__ == "__main__":
+
+    # Set logger settings
+    logging.basicConfig(level=logging.INFO)
+    logger = logging.getLogger(__name__)
+
+    # Create a file handler to write log statements to a file
+    handler = logging.FileHandler('main.log', mode='w')
+    handler.setLevel('DEBUG')
+    logger.addHandler(handler)
+
+    logger.info('Starting script...')
 
     # Open config file and initialize variables from it. No important variables yet.
     cfg = loadConfig()
@@ -78,74 +90,68 @@ if __name__ == "__main__":
     # Detect OS of the platform the app is running on and use appropriate chromedriver
     osys = sys.platform
     if osys.startswith("win"):
-        print("Windows OS detected...using Windows " + browserType + " driver")
+        logger.info("Windows OS detected...using Windows " + browserType + " driver")
         driverPath = "./browserdrivers/" + browserType + "_drivers/win_" + browserType + "_driver.exe"
     elif osys.startswith("darwin"):
-        print("Mac OS detected...using Mac " + browserType + " driver")
+        logger.info("Mac OS detected...using Mac " + browserType + " driver")
         driverPath = "./browserdrivers/" + browserType + "_drivers/mac_" + browserType + "_driver"
     elif osys.startswith("linux"):
-        print("Linux OS detected...using Linux " + browserType + " driver")
+        logger.info("Linux OS detected...using Linux " + browserType + " driver")
         driverPath = "./browserdrivers/" + browserType + "_drivers/linux_" + browserType + "_driver"
     else:
         sys.exit("No driver in \"browserdrivers/\" for detected operating system: " + str(osys))
 
     # This actually DOES work, and the first data we need to save and/or parse is stored in "twosInnerHTML" and then written into "twosInnerHtml.html"
     # Changing the if condition to False will turn off scraping. Data will load from file.
-    browser = None
-    if True:
-        chrome_options = Options()
-        chrome_options.add_argument("--headless")
-        browser = webdriver.Chrome(chrome_options=chrome_options, executable_path=driverPath)
+    chrome_options = Options()
+    chrome_options.add_argument("--headless")
+    browser = webdriver.Chrome(chrome_options=chrome_options, executable_path=driverPath)
 
 	# Open connection and cursor with PostgresSQL instance
-        conn = postgresConnect(dbname="pyStats", user="pyStats_user", password="pystats")
-        conn.set_session(autocommit=True)
-        curs = conn.cursor()
+    conn = postgresConnect(dbname="pyStats", user="pyStats_user", password="pystats")
+    conn.set_session(autocommit=True)
+    curs = conn.cursor()
 
-        for i in range(1,52):
-            browser.get("https://worldofwarcraft.com/en-us/game/pvp/leaderboards/2v2?page={}".format(i))
-            twosInnerHTML = browser.execute_script("return document.body.innerHTML").encode("utf-8")
-            with open("twosInnerHtml.html", "wb") as twosInnerHtmlFile:
-                twosInnerHtmlFile.write(twosInnerHTML)
-                twosInnerHtmlFile.close()
+    # Loop through the pages (1 - 51) of the ladder
+    logger.info('Beginning loop sequence...')
+    for i in range(1,52):
+        logger.debug('Page loop i = ' + str(i))
+        browser.get("https://worldofwarcraft.com/en-us/game/pvp/leaderboards/2v2?page={}".format(i))
+        twosInnerHTML = browser.execute_script("return document.body.innerHTML").encode("utf-8")
+        with open("twosInnerHtml.html", "wb") as twosInnerHtmlFile:
+            twosInnerHtmlFile.write(twosInnerHTML)
+            twosInnerHtmlFile.close()
 
-            # Beautiful, BeautifulSoup. I'm bad at this. I don't know what's going on. Trial and error FTW
-            twosSoupJs = soup(twosInnerHTML, "html.parser")
-            fourBodyDivs = twosSoupJs('div', attrs={'class': 'SortTable-body'})
-            targetDiv = fourBodyDivs[4]
-            try:
-                for section in targetDiv:
-                    charInfoDiv = section.select('div')[1].a.select('div')
-                    charName = charInfoDiv[11].text
-                    moreCharInfoList = charInfoDiv[12].text.split(" ")
-                    charClass = moreCharInfoList[2]
-                    charSpec = moreCharInfoList[1]
-                    charPvpDiv = section.select('div')
-                    charRealm = charPvpDiv[15].text
-                    charRating = charPvpDiv[20].text
-                    # TODO Perhaps remove the following print statement as output isn't necessary
-                    print(charName + " " + charRealm + " " + charClass + " " + charSpec + " " + charRating)
-                    sql="""
-                        INSERT INTO ladder2v2 (charname, realm, class, spec, rating)
-                        VALUES (%(charName)s, %(realm)s, %(class)s, %(spec)s, %(rating)s)
-                        ON CONFLICT ON CONSTRAINT unique_char
-                        DO UPDATE SET spec = %(spec)s, rating = %(rating)s;
-                        """
-                    #.format(charName, charRealm, charClass, charSpec, charRating)
-                    curs.execute(sql, {'charName': charName, 'realm': charRealm, 'class': charClass, 'spec': charSpec, 'rating': charRating})
-            except:
-                # TODO Add better/informative error handling
-                print(charInfoDiv)
-        curs.close()
-        conn.close()
-
-        browser.quit()
-    else:
-        with open('twosInnerHtml.html', 'r') as myfile:
-            twosInnerHTML = myfile.read().replace('\n', '')
+        # Beautiful, BeautifulSoup. I'm bad at this. I don't know what's going on. Trial and error FTW
+        twosSoupJs = soup(twosInnerHTML, "html.parser")
+        fourBodyDivs = twosSoupJs('div', attrs={'class': 'SortTable-body'})
+        targetDiv = fourBodyDivs[4]
+        try:
+            for section in targetDiv:
+                charInfoDiv = section.select('div')[1].a.select('div')
+                charName = charInfoDiv[11].text
+                moreCharInfoList = charInfoDiv[12].text.split(" ")
+                charClass = moreCharInfoList[2]
+                charSpec = moreCharInfoList[1]
+                charPvpDiv = section.select('div')
+                charRealm = charPvpDiv[15].text
+                charRating = charPvpDiv[20].text
+                logger.debug(charName + " " + charRealm + " " + charClass + " " + charSpec + " " + charRating)
+                sql="""
+                    INSERT INTO ladder2v2 (charname, realm, class, spec, rating)
+                    VALUES (%(charName)s, %(realm)s, %(class)s, %(spec)s, %(rating)s)
+                    ON CONFLICT ON CONSTRAINT unique_char
+                    DO UPDATE SET spec = %(spec)s, rating = %(rating)s;
+                    """
+                #.format(charName, charRealm, charClass, charSpec, charRating)
+                curs.execute(sql, {'charName': charName, 'realm': charRealm, 'class': charClass, 'spec': charSpec, 'rating': charRating})
+        except Exception as e:
+            # TODO Add better/informative error handling
+            logger.exception("Whoops. Got an exception. Error: " + "\n\t" + str(e))
+            logger.warning(charInfoDiv)
+    logger.info('All done looping!')
+    curs.close()
+    browser.quit()
     conn.close()
-    #buttonInner = browser.find_element_by_xpath('//div[@data-text="Next"]')
-    #buttonInner.send_keys('\n')
-    #buttonOuter = buttonInner.find_element(By.XPATH('..'))
-    #buttonOuter.click()
+    logger.info('Finished.')
     # TODO - Actually parse the interesting stuff
